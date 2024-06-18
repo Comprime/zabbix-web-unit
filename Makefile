@@ -60,7 +60,7 @@ packages: packages/$(ARCH)/docker-entrypoint-0.1.0-r0.apk packages/$(ARCH)/zabbi
 
 images/zabbix-web-unit.tgz: packages
 	apko build \
-		zabbix-web-unit.apko.yaml \
+		src/zabbix-web-unit.apko.yaml \
 		--arch=$(ARCH) \
 		--sbom-path sboms/ \
 		--keyring-append melange.rsa.pub \
