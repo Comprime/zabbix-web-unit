@@ -87,9 +87,6 @@ contents:
     - php-8.3-xmlreader-config@local
     - php-8.3-xmlwriter@local
     - php-8.3-xmlwriter-config@local
-    - php-8.3-opentelemetry
-    - php-8.3-grpc
-    - php-8.3-protobuf
 
 accounts:
   groups:
