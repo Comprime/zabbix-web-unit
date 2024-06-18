@@ -1,11 +1,12 @@
 # Zabbix Web Unit
 
-This repo contains files necesary to build a container image for the Zabbix Frontend.
+This repo contains files necesary to build a container image for the Zabbix Frontend using the NGINX Unit Application runtime.
+This is intended as drop in replacement for the zabbix/zabbix-web-[apache,nginx]-mysql images.
 
 The two big changes:
 
 - The image is built on the Wolfi (un)distribution, which means it has a small footprint.
-- The image uses Nginx Unit instead of using PHP-FPM & Nginx / Apache HTTP, which comes with better thoughput and removes reliance on supervisord.
+- The image uses NGINX Unit instead of using PHP-FPM & NGINX / Apache HTTP, which comes with better thoughput and removes reliance on supervisord.
 
 Apart from those two major changes, it also includes some smaller fixes:
 
