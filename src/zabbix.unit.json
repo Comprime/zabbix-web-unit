@@ -1,0 +1,64 @@
+{
+    "listeners": {
+        "*:8080": {
+            "pass": "routes/zabbix"
+        }
+    },
+    "routes": {
+        "zabbix": [
+            {
+                "match": {
+                    "uri": [
+                        "/app/*",
+                        "/conf/*",
+                        "/include/*",
+                        "/local/*",
+                        "/locale/*",
+                        "/vendor/*"
+                    ]
+                },
+                "action": {
+                    "return": 404
+                }
+            },
+            {
+                "match": {
+                    "uri": [
+                        "*.php",
+                        "*.php/*"
+                    ]
+                },
+    
+                "action": {
+                    "pass": "applications/zabbix/direct"
+                }
+            },
+            {
+                "action": {
+                    "share": "/usr/share/zabbix$uri",
+                    "chroot": "/usr/share/zabbix/",
+                    "fallback": {
+                        "pass": "applications/zabbix/index"
+                    }
+                }
+            }
+        ]
+    },
+    "applications": {
+        "zabbix": {
+            "type": "php",
+            "options": {
+                "file": "/etc/zabbix.php.ini"
+            },
+            "targets": {
+                "direct": {
+                    "root": "/usr/share/zabbix/"
+                },
+                "index": {
+                    "root": "/usr/share/zabbix/",
+                    "script": "index.php"
+                }
+            }
+        }
+    }
+}

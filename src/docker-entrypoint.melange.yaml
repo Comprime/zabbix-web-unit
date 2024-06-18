@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2024 Victor Dahmen
+# SPDX-License-Identifier: AGPL-3.0-only
+
+package:
+  name: docker-entrypoint
+  version: "0.1.0"
+  description: "Docker entrypoint"
+  epoch: 0
+  copyright:
+    - license: AGPL-3.0-only
+  target-architecture:
+    - x86_64
+  checks:
+    disabled:
+      - empty
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.19/main
+    packages:
+      - busybox
+      - ca-certificates-bundle
+
+pipeline:
+  - runs: |
+      mkdir -p \
+        ${{targets.destdir}}/usr/local/bin/ \
+        ${{targets.destdir}}/usr/local/share/docker-entrypoint/ \
+        ${{targets.destdir}}/var/log/ \
+        ${{targets.destdir}}/etc/
+      mv docker-entrypoint.sh ${{targets.destdir}}/usr/local/bin/
+      mv preload.php dbcheck.php zabbix.unit.json ${{targets.destdir}}/usr/local/share/docker-entrypoint/
+      mv zabbix.php.ini ${{targets.destdir}}/etc/
+      ln -sf /dev/stderr ${{targets.destdir}}/var/log/unit.log

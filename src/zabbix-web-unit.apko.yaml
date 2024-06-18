@@ -1,0 +1,112 @@
+# SPDX-FileCopyrightText: 2024 Victor Dahmen
+# SPDX-License-Identifier: AGPL-3.0
+
+contents:
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  repositories:
+    - https://packages.wolfi.dev/os
+  packages:
+    - wolfi-base
+    - coreutils
+    - ca-certificates-bundle
+    - glibc-locales
+    - glibc-locale-bg
+    - glibc-locale-ca
+    - glibc-locale-cs
+    - glibc-locale-da
+    - glibc-locale-de
+    - glibc-locale-el
+    - glibc-locale-en
+    - glibc-locale-es
+    - glibc-locale-fa
+    - glibc-locale-fi
+    - glibc-locale-fr
+    - glibc-locale-he
+    - glibc-locale-hr
+    - glibc-locale-hu
+    - glibc-locale-id
+    - glibc-locale-it
+    - glibc-locale-ja
+    - glibc-locale-ka
+    - glibc-locale-kk
+    - glibc-locale-ko
+    - glibc-locale-lt
+    - glibc-locale-lv
+    - glibc-locale-nb
+    - glibc-locale-nl
+    - glibc-locale-pl
+    - glibc-locale-pt
+    - glibc-locale-ro
+    - glibc-locale-ru
+    - glibc-locale-sk
+    - glibc-locale-sv
+    - glibc-locale-tr
+    - glibc-locale-uk
+    - glibc-locale-vi
+    - glibc-locale-zh
+    - tzdata
+    - curl
+    - jq
+    - unit@local
+    - unit-php83@local
+    - zabbix-web@local
+    - docker-entrypoint@local
+    - php-8.3@local
+    - php-8.3-embed@local
+    - php-8.3-config@local
+    - php-8.3-bcmath@local
+    - php-8.3-bcmath-config@local
+    - php-8.3-ctype@local
+    - php-8.3-ctype-config@local
+    - php-8.3-fileinfo@local
+    - php-8.3-fileinfo-config@local
+    - php-8.3-gd@local
+    - php-8.3-gd-config@local
+    - php-8.3-gettext@local
+    - php-8.3-gettext-config@local
+    - php-8.3-ldap@local
+    - php-8.3-ldap-config@local
+    - php-8.3-mbstring@local
+    - php-8.3-mbstring-config@local
+    - php-8.3-mysqli@local
+    - php-8.3-mysqli-config@local
+    - php-8.3-mysqlnd@local
+    - php-8.3-mysqlnd-config@local
+    - php-8.3-opcache@local
+    - php-8.3-opcache-config@local
+    - php-8.3-openssl@local
+    - php-8.3-openssl-config@local
+    - php-8.3-simplexml@local
+    - php-8.3-simplexml-config@local
+    - php-8.3-sockets@local
+    - php-8.3-sockets-config@local
+    - php-8.3-dom@local
+    - php-8.3-dom-config@local
+    - php-8.3-xmlreader@local
+    - php-8.3-xmlreader-config@local
+    - php-8.3-xmlwriter@local
+    - php-8.3-xmlwriter-config@local
+    - php-8.3-opentelemetry
+    - php-8.3-grpc
+    - php-8.3-protobuf
+
+accounts:
+  groups:
+    - groupname: unit
+      gid: 999
+  users:
+    - username: unit
+      uid: 999
+  run-as: unit
+
+entrypoint:
+  command: /usr/local/bin/docker-entrypoint.sh
+cmd: unitd --no-daemon --control unix:/var/run/control.unit.sock
+
+environment:
+  PATH: /usr/local/bin:/usr/sbin:/sbin:/usr/bin:/bin
+  ZBX_SERVER_NAME: Zabbix docker
+
+archs:
+  - x86_64

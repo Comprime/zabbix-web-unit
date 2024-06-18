@@ -1,0 +1,17 @@
+
+The Initial Developer of the src/docker-entrypoint.sh, src/zabbix.conf.php,
+& src/maintenance.inc.php scripts is Zabbix SIA (https://zabbix.com)
+& is licensed under the AGPL 3.0 license which is included in the repo as zabbix.LICENSE
+Original source can be found at https://github.com/zabbix/zabbix-docker/
+
+The Initial Developer of the src/php-8.3.melange.yaml build recipe
+is the Wolfi project developers and is licensed under the Apache 2.0 license.
+A copy of the license is included in the repo as wolfi.LICENSE.
+The recipie includes modifications to build the PHP Embed SAPI module, and changes
+to the format of php extension config files.
+All changes are released under the same Apache 2.0 license.
+
+The src/unit.melange.yaml build recipe is based on work done by 
+the Wolfi project developers and is licensed under the Apache 2.0 license.
+A copy of the license is included in the repo as wolfi.LICENSE.
+The recipe is based on the nginx.yaml recipe.

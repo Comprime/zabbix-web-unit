@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2024 Victor Dahmen
+# SPDX-License-Identifier: AGPL-3.0-only
+
+package:
+  name: zabbix-web
+  version: "7.0.0"
+  description: "Zabbix Web Frontend"
+  epoch: 0
+  copyright:
+    - license: AGPL-3.0-only
+  target-architecture:
+    - x86_64
+  checks:
+    disabled:
+      - empty
+
+environment:
+  contents:
+    repositories:
+      - https://dl-cdn.alpinelinux.org/alpine/v3.19/main
+    packages:
+      - busybox
+      - ca-certificates-bundle
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://git.zabbix.com/scm/zbx/zabbix.git
+      destination: zabbix
+      tag: "${{package.version}}"
+  - runs: |
+      mkdir -p \
+        ${{targets.destdir}}/usr/share/ \
+        ${{targets.destdir}}/etc/zabbix/web/
+
+      mv zabbix.conf.php maintenance.inc.php ${{targets.destdir}}/etc/zabbix/web/
+      mv zabbix/ui ${{targets.destdir}}/usr/share/zabbix
+      cd ${{targets.destdir}}/usr/share/zabbix 
+      rm -rf tests conf/* locale/add_new_language.sh locale/update_po.sh locale/make_mo.sh
+      ln -sf /etc/zabbix/web/zabbix.conf.php conf/zabbix.conf.php
+      ln -sf /etc/zabbix/web/maintenance.inc.php conf/maintenance.inc.php
+      sed -i "s/'zbx_session'/getenv('ZBX_SESSION_NAME') ?: 'zbx_session'/g"  include/defines.inc.php
