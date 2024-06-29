@@ -33,10 +33,19 @@ pipeline:
         ${{targets.destdir}}/usr/share/ \
         ${{targets.destdir}}/etc/zabbix/web/
 
+      # Move container config scripts to etc
       mv zabbix.conf.php maintenance.inc.php ${{targets.destdir}}/etc/zabbix/web/
+      # Move zabbix frontend to default install location
       mv zabbix/ui ${{targets.destdir}}/usr/share/zabbix
+
       cd ${{targets.destdir}}/usr/share/zabbix 
+
+      # Remove configs and locale utility scripts
       rm -rf tests conf/* locale/add_new_language.sh locale/update_po.sh locale/make_mo.sh
+
+      # Link configs from etc
       ln -sf /etc/zabbix/web/zabbix.conf.php conf/zabbix.conf.php
       ln -sf /etc/zabbix/web/maintenance.inc.php conf/maintenance.inc.php
+
+      # Change session cookie name to be configurable by env
       sed -i "s/'zbx_session'/getenv('ZBX_SESSION_NAME') ?: 'zbx_session'/g"  include/defines.inc.php

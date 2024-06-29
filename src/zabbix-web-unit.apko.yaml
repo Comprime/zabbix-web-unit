@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2024 Victor Dahmen
-# SPDX-License-Identifier: AGPL-3.0
+# SPDX-License-Identifier: AGPL-3.0-only
 
 contents:
   keyring:
@@ -11,40 +11,7 @@ contents:
     - coreutils
     - ca-certificates-bundle
     - glibc-locales
-    - glibc-locale-bg
-    - glibc-locale-ca
-    - glibc-locale-cs
-    - glibc-locale-da
-    - glibc-locale-de
-    - glibc-locale-el
     - glibc-locale-en
-    - glibc-locale-es
-    - glibc-locale-fa
-    - glibc-locale-fi
-    - glibc-locale-fr
-    - glibc-locale-he
-    - glibc-locale-hr
-    - glibc-locale-hu
-    - glibc-locale-id
-    - glibc-locale-it
-    - glibc-locale-ja
-    - glibc-locale-ka
-    - glibc-locale-kk
-    - glibc-locale-ko
-    - glibc-locale-lt
-    - glibc-locale-lv
-    - glibc-locale-nb
-    - glibc-locale-nl
-    - glibc-locale-pl
-    - glibc-locale-pt
-    - glibc-locale-ro
-    - glibc-locale-ru
-    - glibc-locale-sk
-    - glibc-locale-sv
-    - glibc-locale-tr
-    - glibc-locale-uk
-    - glibc-locale-vi
-    - glibc-locale-zh
     - tzdata
     - curl
     - jq
