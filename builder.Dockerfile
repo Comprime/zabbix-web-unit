@@ -4,4 +4,6 @@
 
 FROM chainguard/wolfi-base
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk add melange apko make
+    apk add melange apko make skopeo && \
+    mkdir /etc/containers/ && \
+    echo '{"default":[{"type": "insecureAcceptAnything"}]}' > /etc/containers/policy.json

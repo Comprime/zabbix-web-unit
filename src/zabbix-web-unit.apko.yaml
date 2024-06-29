@@ -50,8 +50,7 @@ contents:
     - jq
     - unit@local
     - unit-php83@local
-    - zabbix-web@local
-    - docker-entrypoint@local
+    - docker-entrypoint-compat@local
     - php-8.3@local
     - php-8.3-embed@local
     - php-8.3-config@local

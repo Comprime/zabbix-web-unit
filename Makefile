@@ -1,81 +1,139 @@
 # SPDX-FileCopyrightText: 2024 Victor Dahmen
 # SPDX-License-Identifier: AGPL-3.0-only
 
-ZABBIX_VER := 7.0.0
+ZABBIX_VER := 7.0.0 6.4.16 6.0.31
 PHP_VER := 8.3.8
 UNIT_VER := 1.32.1-1
 ENTRYPOINT_VER := 0.1.0
 ARCH := x86_64
-IMAGE := comprime/zabbix-web-unit:$(ZABBIX_VER)-latest
+IMAGE := comprime/zabbix-web-unit
 SIGNING_KEY := melange.rsa
+MELANGE_RUNNER := bubblewrap
+SRC_DIR := ./src
+CACHE := ./cache
+MELANGE_CACHE := $(CACHE)/melange
+APK_CACHE := $(CACHE)/apk
+MELANGE_OPTS := \
+	--runner=$(MELANGE_RUNNER) \
+	--apk-cache-dir=$(APK_CACHE) \
+	--cache-dir=$(MELANGE_CACHE) \
+	--arch=$(ARCH) \
+	--signing-key=$(SIGNING_KEY)
+REPO_OPTS := \
+	--keyring-append=$(SIGNING_KEY).pub \
+	--repository-append='@local packages'
+
 
 .PHONY: all
 all: images
 
-.PHONY:
+.PHONY: docker-make
 docker-make: $(SIGNING_KEY)
 	docker build . -f builder.Dockerfile -t zabbix-web-builder
 	docker run --rm -it \
 		--cap-add SYS_ADMIN --security-opt seccomp=unconfined \
 		--tmpfs /var/tmp \
-		-v ${PWD}:/work:ro -v ${PWD}/$(SIGNING_KEY).pub:/etc/apk/keys/$(SIGNING_KEY).pub:ro \
+		-v ${PWD}:/work:ro \
+		-v ${PWD}/$(SIGNING_KEY).pub:/etc/apk/keys/$(SIGNING_KEY).pub:ro \
 		-v ${PWD}/packages:/work/packages \
 		-v ${PWD}/images:/work/images \
 		-v ${PWD}/sboms:/work/sboms \
+		-v ${PWD}/melange-cache:/work/melange-cache \
 		-w /work zabbix-web-builder \
-			make images
+			make all
 
-$(SIGNING_KEY):
+$(SIGNING_KEY) $(SIGNING_KEY).pub:
+ifneq ($(shell which melange),)
+	melange keygen $(SIGNING_KEY)
+else
 	docker build . -f builder.Dockerfile -t zabbix-web-builder
 	docker run --rm -it -v ${PWD}:/work -w /work zabbix-web-builder \
-		make $(SIGNING_KEY).docker
+		make $(SIGNING_KEY)
+endif
 
-.PHONY: $(SIGNING_KEY).docker
-$(SIGNING_KEY).docker:
-	melange keygen $(SIGNING_KEY)
 
-packages/$(ARCH)/docker-entrypoint-$(ENTRYPOINT_VER)-r0.apk: $(SIGNING_KEY) src/docker-entrypoint.melange.yaml
+######################
+# Packages / Melange #
+######################
+
+PACKAGES = \
+	packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk \
+	packages/$(ARCH)/php-8.3-$(PHP_VER)-r1.apk \
+	packages/$(ARCH)/unit-$(UNIT_VER)-r0.apk
+
+
+.PRECIOUS: packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk
+packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk: src/docker-entrypoint.melange.yaml $(SIGNING_KEY)
 	melange build \
 		src/docker-entrypoint.melange.yaml \
-		--source-dir=src \
-		--arch=$(ARCH) \
-		--runner=bubblewrap \
-		--signing-key=$(SIGNING_KEY)
+		$(MELANGE_OPTS) \
+		--source-dir=$(SRC_DIR)
 
-packages/$(ARCH)/zabbix-web-$(ZABBIX_VER)-r0.apk: $(SIGNING_KEY) src/zabbix-web.melange.yaml
+
+.PRECIOUS: packages/$(ARCH)/zabbix-web-%-r0.apk
+packages/$(ARCH)/zabbix-web-%-r0.apk: src/zabbix-web.melange.yaml $(SIGNING_KEY)
+	$(eval TMPDIR := $(shell mktemp -d -t zw-XXXXXX))
+	$(eval MELFILE := $(TMPDIR)/$(notdir $<))
+	@cp $< $(MELFILE)
+	@if [ "$$(melange package-version $(MELFILE))" != "zabbix-web-$*-r0" ]; then melange bump $(MELFILE) $*; fi
 	melange build \
-		src/zabbix-web.melange.yaml \
-		--source-dir=src \
-		--arch=$(ARCH) \
-		--runner=bubblewrap \
-		--signing-key=$(SIGNING_KEY)
+		$(MELFILE) \
+		$(MELANGE_OPTS) \
+		--source-dir=$(SRC_DIR)
+	@rm -rf $(TMPDIR)
 
-packages/$(ARCH)/php-8.3-$(PHP_VER)-r1.apk: $(SIGNING_KEY) src/php-8.3.melange.yaml
-	melange build \
-		src/php-8.3.melange.yaml \
-		--arch=$(ARCH) \
-		--runner=bubblewrap \
-		--signing-key=$(SIGNING_KEY)
 
-packages/$(ARCH)/unit-$(UNIT_VER)-r0.apk: packages/$(ARCH)/php-8.3-$(PHP_VER)-r1.apk $(SIGNING_KEY) src/unit.melange.yaml
-	melange build \
-		src/unit.melange.yaml \
-		--arch=$(ARCH) \
-		--runner=bubblewrap \
-		--keyring-append=$(SIGNING_KEY).pub \
-		--repository-append='@local packages' \
-		--signing-key $(SIGNING_KEY)
+.PRECIOUS: packages/$(ARCH)/php-8.3-%-r1.apk
+packages/$(ARCH)/php-8.3-%-r1.apk: src/php-8.3.melange.yaml $(SIGNING_KEY)
+	$(eval TMPDIR := $(shell mktemp -d -t zw-XXXXXX))
+	$(eval MELFILE := $(TMPDIR)/$(notdir $<))
+	@cp $< $(MELFILE)
+	@if [ "$$(melange package-version $(MELFILE))" != "php-8.3-$*-r1" ]; then melange bump $(MELFILE) $*; fi
+	@melange build \
+		$(MELFILE) \
+		$(MELANGE_OPTS)
+	@rm -rf $(TMPDIR)
 
-PACKAGES = packages/$(ARCH)/docker-entrypoint-$(ENTRYPOINT_VER)-r0.apk packages/$(ARCH)/zabbix-web-$(ZABBIX_VER)-r0.apk packages/$(ARCH)/php-8.3-$(PHP_VER)-r1.apk packages/$(ARCH)/unit-$(UNIT_VER)-r0.apk
 
-images/zabbix-web-unit.tgz: $(PACKAGES) src/zabbix-web-unit.apko.yaml
+.PRECIOUS: packages/$(ARCH)/unit-%-r0.apk
+packages/$(ARCH)/unit-%-r0.apk: src/unit.melange.yaml $(SIGNING_KEY) $(SIGNING_KEY).pub
+	$(eval TMPDIR := $(shell mktemp -d -t zw-XXXXXX))
+	$(eval MELFILE := $(TMPDIR)/$(notdir $<))
+	@cp $< $(MELFILE)
+	@if [ "$$(melange package-version $(MELFILE))" != "unit-$*-r0" ]; then melange bump $(MELFILE) $*; fi
+	@melange build \
+		$(MELFILE) \
+		$(MELANGE_OPTS) \
+		$(REPO_OPTS)
+	@rm -rf $(TMPDIR)
+
+#################
+# Images / Apko #
+#################
+
+
+.PRECIOUS: images/zabbix-web-unit.%
+images/zabbix-web-unit.%: src/zabbix-web-unit.apko.yaml $(PACKAGES) packages/$(ARCH)/zabbix-web-%-r0.apk $(SIGNING_KEY).pub
+	@mkdir images/zabbix-web-unit.$*/
 	apko build \
 		src/zabbix-web-unit.apko.yaml \
+		--cache-dir=$(APK_CACHE) \
 		--arch=$(ARCH) \
-		--sbom-path sboms/ \
-		--keyring-append $(SIGNING_KEY).pub \
-		--repository-append='@local packages' \
-		$(IMAGE) images/zabbix-web-unit.tgz
+		$(REPO_OPTS) \
+		--package-append='zabbix-web=$*@local' \
+		--sbom-path=sboms/ \
+		$(IMAGE):$* \
+		images/zabbix-web-unit.$*/
+
+
+.PRECIOUS: images/zabbix-web-unit.%
+images/zabbix-web-unit.%.tar: images/zabbix-web-unit.%
+	skopeo copy \
+		oci:$< \
+		docker-archive:$<.tar \
+		--additional-tag $(IMAGE):$* \
+		--additional-tag $(IMAGE):wolfi-$*
+
 
 .PHONY: images
-images: images/zabbix-web-unit.tgz
+images: $(foreach ver,$(ZABBIX_VER),images/zabbix-web-unit.$(ver).tar)
