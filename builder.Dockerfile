@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 FROM chainguard/wolfi-base
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add melange apko make skopeo && \
+RUN apk add --no-cache \
+        melange apko make skopeo && \
     mkdir /etc/containers/ && \
     echo '{"default":[{"type": "insecureAcceptAnything"}]}' > /etc/containers/policy.json

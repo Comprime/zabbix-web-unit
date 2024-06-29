@@ -22,6 +22,13 @@ MELANGE_OPTS := \
 REPO_OPTS := \
 	--keyring-append=$(SIGNING_KEY).pub \
 	--repository-append='@local packages'
+ifndef DOCKER
+ifneq ($(shell which docker),)
+DOCKER := docker
+else ifneq ($(shell which podman),)
+DOCKER := podman
+endif
+endif
 
 
 .PHONY: all
@@ -29,25 +36,26 @@ all: images
 
 .PHONY: docker-make
 docker-make: $(SIGNING_KEY)
-	docker build . -f builder.Dockerfile -t zabbix-web-builder
-	docker run --rm -it \
-		--cap-add SYS_ADMIN --security-opt seccomp=unconfined \
-		--tmpfs /var/tmp \
-		-v ${PWD}:/work:ro \
-		-v ${PWD}/$(SIGNING_KEY).pub:/etc/apk/keys/$(SIGNING_KEY).pub:ro \
-		-v ${PWD}/packages:/work/packages \
-		-v ${PWD}/images:/work/images \
-		-v ${PWD}/sboms:/work/sboms \
-		-v ${PWD}/melange-cache:/work/melange-cache \
-		-w /work zabbix-web-builder \
+	$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
+	$(DOCKER) run --rm -it \
+		--cap-add=SYS_ADMIN --security-opt=seccomp=unconfined \
+		--tmpfs=/var/tmp \
+		--user=$(shell id -u):$(shell id -g) \
+		-v=${PWD}:/work:ro \
+		-v=${PWD}/$(SIGNING_KEY).pub:/etc/apk/keys/$(SIGNING_KEY).pub:ro \
+		-v=${PWD}/packages:/work/packages \
+		-v=${PWD}/images:/work/images \
+		-v=${PWD}/sboms:/work/sboms \
+		-v=${PWD}/cache:/work/cache \
+		-w=/work zabbix-web-builder \
 			make all
 
 $(SIGNING_KEY) $(SIGNING_KEY).pub:
 ifneq ($(shell which melange),)
 	melange keygen $(SIGNING_KEY)
 else
-	docker build . -f builder.Dockerfile -t zabbix-web-builder
-	docker run --rm -it -v ${PWD}:/work -w /work zabbix-web-builder \
+	$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
+	$(DOCKER) run --rm -it -v ${PWD}:/work -w /work zabbix-web-builder \
 		make $(SIGNING_KEY)
 endif
 
