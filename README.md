@@ -14,18 +14,19 @@ Apart from those two major changes, it also includes some smaller fixes:
 - docker-entrypoint.sh doesn't tests its DB connection using a php script, (dbcheck.php), thus doesn't depend on mysql-admin command.
 - additional flags for enabling php-opcache and preloading, (preload.php), thus increasing throughput and lowering latencies.
 
-## Docker image
+## Docker images
 
-Docker image can be pulled with:
+Following image tags currently exist:
 
-```sh
-docker pull docker.io/comprime/zabbix-web-unit:7.0.0-latest-amd64
-```
+| Zabbix Version | Image repo               | Tags                             |
+|----------------|--------------------------|----------------------------------|
+| 6.0.31         | comprime/zabbix-web-unit | 6.0-latest, wolfi-6.0.31, 6.0.31 |
+| 6.4.16         | comprime/zabbix-web-unit | 6.4-latest, wolfi-6.4.16, 6.4.16 |
+| 7.0.0          | comprime/zabbix-web-unit | 7.0-latest, wolfi-7.0.0, 7.0.0   |
 
-## Build
+## Build instructions
 
-Image is built using make, melange and apko, the last two tools are tools made by chainguard.dev
+Image is built using [melange](https://github.com/chainguard-dev/melange), [apko](https://github.com/chainguard-dev/apko), [skopeo](https://github.com/containers/skopeo), and [make](https://www.gnu.org/software/make/).
+Melange then has a dependency on [bubblewrap](https://github.com/containers/bubblewrap).
 
-Simply running `make docker-make` is enough to create a build container, and build the entire image.
-
-Melange uses bubblewrap to isolate builds from the environment, and thus requires some restrictions imposed on normal docker containers.
+If you have docker or podman installed, just running `make docker-make` will take care of everything for you and build the images.
