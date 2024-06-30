@@ -45,7 +45,6 @@ docker-make: $(SIGNING_KEY)
 		-v=${PWD}/$(SIGNING_KEY).pub:/etc/apk/keys/$(SIGNING_KEY).pub:ro \
 		-v=${PWD}/packages:/work/packages \
 		-v=${PWD}/images:/work/images \
-		-v=${PWD}/sboms:/work/sboms \
 		-v=${PWD}/cache:/work/cache \
 		-w=/work zabbix-web-builder \
 			make all
@@ -129,7 +128,7 @@ images/zabbix-web-unit.%: src/zabbix-web-unit.apko.yaml $(PACKAGES) packages/$(A
 		--arch=$(ARCH) \
 		$(REPO_OPTS) \
 		--package-append='zabbix-web=$*@local' \
-		--sbom-path=sboms/ \
+		--sbom=false \
 		$(IMAGE):$* \
 		images/zabbix-web-unit.$*/
 
