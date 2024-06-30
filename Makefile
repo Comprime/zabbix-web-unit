@@ -59,9 +59,9 @@ else
 endif
 
 
-######################
-# Packages / Melange #
-######################
+############
+# Packages #
+############
 
 PACKAGES = \
 	packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk \
@@ -114,10 +114,10 @@ packages/$(ARCH)/unit-%-r0.apk: src/unit.melange.yaml $(SIGNING_KEY) $(SIGNING_K
 		$(REPO_OPTS)
 	@rm -rf $(TMPDIR)
 
-#################
-# Images / Apko #
-#################
 
+##########
+# Images #
+##########
 
 .PRECIOUS: images/zabbix-web-unit.%
 images/zabbix-web-unit.%: src/zabbix-web-unit.apko.yaml $(PACKAGES) packages/$(ARCH)/zabbix-web-%-r0.apk $(SIGNING_KEY).pub
