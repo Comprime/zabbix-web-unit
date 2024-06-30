@@ -36,8 +36,8 @@ all: images
 
 .PHONY: docker-make
 docker-make: $(SIGNING_KEY)
-	$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
-	$(DOCKER) run --rm -it \
+	@$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
+	@$(DOCKER) run --rm -it \
 		--cap-add=SYS_ADMIN --security-opt=seccomp=unconfined \
 		--tmpfs=/var/tmp \
 		--user=$(shell id -u):$(shell id -g) \
@@ -51,10 +51,10 @@ docker-make: $(SIGNING_KEY)
 
 $(SIGNING_KEY) $(SIGNING_KEY).pub:
 ifneq ($(shell which melange),)
-	melange keygen $(SIGNING_KEY)
+	@melange keygen $(SIGNING_KEY)
 else
-	$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
-	$(DOCKER) run --rm -it -v ${PWD}:/work -w /work zabbix-web-builder \
+	@$(DOCKER) build . -f builder.Dockerfile -t zabbix-web-builder
+	@$(DOCKER) run --rm -it -v ${PWD}:/work -w /work zabbix-web-builder \
 		make $(SIGNING_KEY)
 endif
 
@@ -71,7 +71,7 @@ PACKAGES = \
 
 .PRECIOUS: packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk
 packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk: src/docker-entrypoint.melange.yaml $(SIGNING_KEY)
-	melange build \
+	@melange build \
 		src/docker-entrypoint.melange.yaml \
 		$(MELANGE_OPTS) \
 		--source-dir=$(SRC_DIR)
@@ -83,7 +83,7 @@ packages/$(ARCH)/zabbix-web-%-r0.apk: src/zabbix-web.melange.yaml $(SIGNING_KEY)
 	$(eval MELFILE := $(TMPDIR)/$(notdir $<))
 	@cp $< $(MELFILE)
 	@if [ "$$(melange package-version $(MELFILE))" != "zabbix-web-$*-r0" ]; then melange bump $(MELFILE) $*; fi
-	melange build \
+	@melange build \
 		$(MELFILE) \
 		$(MELANGE_OPTS) \
 		--source-dir=$(SRC_DIR)
@@ -122,7 +122,7 @@ packages/$(ARCH)/unit-%-r0.apk: src/unit.melange.yaml $(SIGNING_KEY) $(SIGNING_K
 .PRECIOUS: images/zabbix-web-unit.%
 images/zabbix-web-unit.%: src/zabbix-web-unit.apko.yaml $(PACKAGES) packages/$(ARCH)/zabbix-web-%-r0.apk $(SIGNING_KEY).pub
 	@mkdir images/zabbix-web-unit.$*/
-	apko build \
+	@apko build \
 		src/zabbix-web-unit.apko.yaml \
 		--cache-dir=$(APK_CACHE) \
 		--arch=$(ARCH) \
@@ -135,7 +135,7 @@ images/zabbix-web-unit.%: src/zabbix-web-unit.apko.yaml $(PACKAGES) packages/$(A
 
 .PRECIOUS: images/zabbix-web-unit.%
 images/zabbix-web-unit.%.tar: images/zabbix-web-unit.%
-	skopeo copy \
+	@skopeo copy \
 		oci:$< \
 		docker-archive:$<.tar \
 		--additional-tag $(IMAGE):$* \
