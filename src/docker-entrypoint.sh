@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/ash
+# shellcheck shell=dash
 
 set -o pipefail
 
@@ -7,7 +8,7 @@ set +e
 # Script trace mode
 
 DEBUG_MODE=$(echo "${DEBUG_MODE}" | awk '{print tolower($0)}')
-if [ "${DEBUG_MODE}" == "true" ]; then
+if [ "${DEBUG_MODE}" = "true" ]; then
     set -o xtrace
 fi
 
@@ -19,11 +20,12 @@ SLEEPSEC=1
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
 #  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
 file_env() {
-	local var="$1"
-	local fileVar="${var}_FILE"
-	local def="${2:-}"
-	local varValue=$(env | grep -E "^${var}=" | sed -E -e "s/^${var}=//")
-	local fileVarValue=$(env | grep -E "^${fileVar}=" | sed -E -e "s/^${fileVar}=//")
+    local var fileVar def varValue fileVarValue
+	var="$1"
+	fileVar="${var}_FILE"
+	def="${2:-}"
+	varValue=$(env | grep -E "^${var}=" | sed -E -e "s/^${var}=//")
+	fileVarValue=$(env | grep -E "^${fileVar}=" | sed -E -e "s/^${fileVar}=//")
 	if [ -n "${varValue}" ] && [ -n "${fileVarValue}" ]; then
 		echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
 		exit 1
@@ -40,12 +42,12 @@ file_env() {
 
 # Check prerequisites for MySQL database
 check_variables() {
-    if [ ! -n "${DB_SERVER_SOCKET}" ]; then
-        : ${DB_SERVER_HOST:="mysql-server"}
+    if [ -z "${DB_SERVER_SOCKET}" ]; then
+        : "${DB_SERVER_HOST:="mysql-server"}"
     else
         DB_SERVER_HOST="localhost"
     fi
-    : ${DB_SERVER_PORT:="3306"}
+    : "${DB_SERVER_PORT:="3306"}"
 
     file_env MYSQL_USER
     file_env MYSQL_PASSWORD
@@ -60,7 +62,7 @@ db_tls_params() {
     local result=""
 
     ZBX_DB_ENCRYPTION=$(echo "${ZBX_DB_ENCRYPTION}" | awk '{print tolower($0)}')
-    if [ "${ZBX_DB_ENCRYPTION}" == "true" ]; then
+    if [ "${ZBX_DB_ENCRYPTION}" = "true" ]; then
         result="--ssl"
 
         if [ -n "${ZBX_DB_CA_FILE}" ]; then
@@ -76,7 +78,7 @@ db_tls_params() {
         fi
     fi
 
-    echo $result
+    echo "$result"
 }
 
 check_db_connect() {
@@ -87,21 +89,24 @@ check_db_connect() {
         echo "* DB_SERVER_SOCKET: ${DB_SERVER_SOCKET}"
     fi
     echo "* DB_SERVER_DBNAME: ${DB_SERVER_DBNAME}"
-    if [ "${DEBUG_MODE}" == "true" ]; then
+    if [ "${DEBUG_MODE}" = "true" ]; then
         echo "* DB_SERVER_ZBX_USER: ${DB_SERVER_ZBX_USER}"
         echo "* DB_SERVER_ZBX_PASS: ${DB_SERVER_ZBX_PASS}"
     fi
     echo "********************"
 
+    local WAIT_TIMEOUT
     WAIT_TIMEOUT=5
 
-    ssl_opts="$(db_tls_params)"
-
     while true; do
-        local CONN_ERR="$(php /usr/local/share/docker-entrypoint/dbcheck.php)"
+        local CONN_ERR EC
+        CONN_ERR="$(php /usr/local/share/docker-entrypoint/dbcheck.php)"
         EC=$?
         [ "${EC}" -eq "0" ] && break
         echo "**** ${DB_SERVER_TYPE} DB server is not available. Waiting $WAIT_TIMEOUT seconds..."
+        if [ "${DEBUG_MODE}" = "true" ]; then
+            echo "${CONN_ERR}"
+        fi
         sleep $WAIT_TIMEOUT
     done
 }
@@ -176,64 +181,55 @@ prepare_zbx_web_config() {
 
 truthy()
 {
-    ! [[ "$1" == "0" || "$1" == "false" ]]
+    ! [ "$1" = "0" ] && ! [ "$1" = "false" ]
 }
 
 unit_cmd()
 {
+    local ret retBody retStatus
     if [ -z "$3" ]; then
-        RET=$(curl -s -w '%{http_code}' -X "$1" --unix-socket /var/run/control.unit.sock "http://localhost/$2")
+        ret=$(curl -s -w '%{http_code}' -X "$1" --unix-socket /var/run/control.unit.sock "http://localhost/$2")
     else
-        RET=$(curl -s -w '%{http_code}' -X "$1" --data-binary "$3" --unix-socket /var/run/control.unit.sock "http://localhost/$2")
+        ret=$(curl -s -w '%{http_code}' -X "$1" --data-binary "$3" --unix-socket /var/run/control.unit.sock "http://localhost/$2")
     fi
-    RET_BODY=$(echo $RET | jq -c | head -c -4)
-    RET_STATUS=$(echo $RET | tail -c 4)
-    if [ "$RET_STATUS" -ne "200" ]; then
-        echo "$0: Error: HTTP response status code is '$RET_STATUS'"
-        echo "$RET_BODY"
+    retBody=$(echo "${ret}" | jq -c | head -c -4)
+    retStatus=$(echo "${ret}" | tail -c 4)
+    if [ "${retStatus}" -ne "200" ]; then
+        echo "$0: Error: HTTP response status code is '${retStatus}'"
+        echo "${RET_BOD}Y"
         return 1
     else
-        echo "$0: OK: HTTP response status code is '$RET_STATUS'"
-        echo "$RET_BODY"
+        echo "$0: OK: HTTP response status code is '${retStatus}'"
+        if [ "${DEBUG_MODE}" = "true" ]; then
+            echo "  ${retBody}"
+        fi
     fi
     return 0
 }
 
 unit_app_cfg_part()
 {
-    echo $@ | jq -s 'reduce .[] as $i ({}; . * $i)'
+    echo "$@" | jq -s 'reduce .[] as $i ({}; . * $i)'
 }
 
 unit_app_cfg()
 {
-    CFG="$(jq -cM . /usr/local/share/docker-entrypoint/zabbix.unit.json)"
-    CFG_FIL=""
+    local cfgFilter
+    cfgFilter="."
     if [ "${PHP_FPM_PM}" = "dynamic" ]; then
-        CFG_FIL="${CFG_FIL} | .applications.zabbix.processes = {max: (\"${PHP_FPM_PM_MAX_CHILDREN-1}\"|tonumber), "spare": (\"${PHP_FPM_PM_START_SERVERS-1}\"|tonumber), "idle_timeout": 32}"
-        CFG2=$(unit_app_cfg_part "${CFG}" "$(jq -c . <<EOF
-{"applications": {"zabbix": {"processes": {"max": ${PHP_FPM_PM_MAX_CHILDREN-1}, "spare": ${PHP_FPM_PM_START_SERVERS-1}, "idle_timeout": 32}}}}
-EOF
-)")
+        cfgFilter="${cfgFilter} | .applications.zabbix.processes = {max: (\"${PHP_FPM_PM_MAX_CHILDREN-1}\" | tonumber), spare: (\"${PHP_FPM_PM_START_SERVERS-1}\" | tonumber), idle_timeout: 32}"
         if [ "${PHP_FPM_PM_MAX_REQUESTS}" -gt "0" ]; then
-            CFG_FIL="${CFG_FIL} | .applications.zabbix.limits.requests = ${PHP_FPM_PM_MAX_REQUESTS}"
-            CFG2=$(unit_app_cfg_part "${CFG}" "$(jq -c . <<EOF
-{"applications": {"zabbix": {"limits": {"requests": ${PHP_FPM_PM_MAX_REQUESTS}}}}}
-EOF
-)")
+            cfgFilter="${cfgFilter} | .applications.zabbix.limits.requests = (\"${PHP_FPM_PM_MAX_REQUESTS}\" | tonumber)"
         fi
     fi
-    if ! truthy "${EXPOSE_WEB_SERVER_INFO}"; then
-        CFG_FIL="${CFG_FIL} | .settings.http.server_version = false"
-        CFG2=$(unit_app_cfg_part "${CFG}" "$(jq -c . <<EOF
-{"settings": {"http": {"server_version": false}}}
-EOF
-)")
+    if [ "${EXPOSE_WEB_SERVER_INFO}" != "true" ]; then
+        cfgFilter="${cfgFilter} | .settings.http.server_version = false"
     fi
-    if [ ! -z "${CFG_FIL}" ]; then
-        CFG="$(echo "${CFG}" | jq -cM "${CFG_FIL:2}")"
+    cfgFilter="$(jq -cM "${cfgFilter}" /usr/local/share/docker-entrypoint/zabbix.unit.json)"
+    if [ "${DEBUG_MODE}" = "true" ]; then
+        echo " * Unit CFG: ${cfgFilter}"
     fi
-    echo ${CFG}
-    unit_cmd PUT config "${CFG}"
+    unit_cmd PUT config "${cfgFilter}"
 }
 
 prepare_unit() {
@@ -243,7 +239,7 @@ prepare_unit() {
         echo "$0: Launching Unit daemon to perform initial configuration..."
         $1 --control unix:/var/run/control.unit.sock
 
-        for i in $(seq $WAITLOOPS); do
+        for _ in $(seq $WAITLOOPS); do
             if [ ! -S /var/run/control.unit.sock ]; then
                 echo "$0: Waiting for control socket to be created..."
                 sleep $SLEEPSEC
@@ -259,9 +255,9 @@ prepare_unit() {
         unit_cmd GET
 
         echo "$0: Stopping Unit daemon after initial configuration..."
-        kill -TERM $(cat /var/run/unit.pid)
+        kill -TERM "$(cat /var/run/unit.pid)"
 
-        for i in $(seq $WAITLOOPS); do
+        for _ in $(seq $WAITLOOPS); do
             if [ -S /var/run/control.unit.sock ]; then
                 echo "$0: Waiting for control socket to be removed..."
                 sleep $SLEEPSEC
@@ -270,7 +266,7 @@ prepare_unit() {
             fi
         done
         if [ -S /var/run/control.unit.sock ]; then
-            kill -KILL $(cat /var/run/unit.pid)
+            kill -KILL "$(cat /var/run/unit.pid)"
             rm -f /var/run/control.unit.sock
         fi
 
@@ -284,7 +280,7 @@ if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
     check_variables
     prepare_zbx_web_config
     check_db_connect
-    prepare_unit $1
+    prepare_unit "$1"
 fi
 
 exec "$@"
