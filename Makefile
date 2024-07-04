@@ -68,17 +68,19 @@ PACKAGES = \
 	packages/$(ARCH)/php-8.3-$(PHP_VER)-r1.apk \
 	packages/$(ARCH)/unit-$(UNIT_VER)-r0.apk
 
-
+ENTRYPOINT_CONTENTS_FILTER = %.yaml src/maintenance.inc.php src/zabbix.conf.php
+ENTRYPOINT_CONTENTS = $(filter-out $(ENTRYPOINT_CONTENTS_FILTER),$(wildcard src/*))
 .PRECIOUS: packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk
-packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk: src/docker-entrypoint.melange.yaml $(SIGNING_KEY)
+packages/$(ARCH)/docker-entrypoint-compat-$(ENTRYPOINT_VER)-r0.apk: src/docker-entrypoint.melange.yaml $(ENTRYPOINT_CONTENTS) $(SIGNING_KEY)
 	@melange build \
 		src/docker-entrypoint.melange.yaml \
 		$(MELANGE_OPTS) \
 		--source-dir=$(SRC_DIR)
 
 
+ZABBIX_WEB_CONTENTS = src/maintenance.inc.php src/zabbix.conf.php
 .PRECIOUS: packages/$(ARCH)/zabbix-web-%-r0.apk
-packages/$(ARCH)/zabbix-web-%-r0.apk: src/zabbix-web.melange.yaml $(SIGNING_KEY)
+packages/$(ARCH)/zabbix-web-%-r0.apk: src/zabbix-web.melange.yaml $(ZABBIX_WEB_CONTENTS) $(SIGNING_KEY)
 	$(eval TMPDIR := $(shell mktemp -d -t zw-XXXXXX))
 	$(eval MELFILE := $(TMPDIR)/$(notdir $<))
 	@cp $< $(MELFILE)
