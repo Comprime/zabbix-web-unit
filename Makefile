@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024 Victor Dahmen
 # SPDX-License-Identifier: AGPL-3.0-only
 
-ZABBIX_VER := 7.0.0 6.4.16 6.0.31
+ZABBIX_VER := 7.0.0 6.4.17 6.0.32
 PHP_VER := 8.3.8
 UNIT_VER := 1.32.1-1
 ENTRYPOINT_VER := 0.1.0
